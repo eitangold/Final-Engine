@@ -1,0 +1,80 @@
+{
+    "doc":"this json will contain a mapping between a key->path",
+    "path_to_page_view": "pageviews.pkl",
+    "path_to_doc2title": "regular-index/text-index/text_doc2title.stat",
+    "path_to_page_rank": "page-rank.pkl",
+    "regular":{
+            "text": {
+                    "path_to_index_base_dir":"regular-index/text-index",
+                    "index_name": "regular_text_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"regular-index/text-index/regular_text_w2df_statistics.stat",
+                    "doc2len":"regular-index/text-index/regular_text_doc2len.stat",
+                    "doc2norm":"regular-index/text-index/regular_text_doc2normlen.stat"
+
+            },
+            "title": {
+                    "path_to_index_base_dir":"regular-index/title-index",
+                    "index_name": "regular_title_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"regular-index/title-index/regular_title_w2df_statistics.stat",
+                    "page-rank": "page-rank.pkl"
+            },
+            "anchor": {
+                    "path_to_index_base_dir":"regular-index/anchor-index",
+                    "index_name": "regular_anchor_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"regular-index/anchor-index/regular_anchor_w2df_statistics.stat",
+                    "page-rank": "page-rank.pkl"
+            }
+
+    },
+    "snowball":{
+            "text": {
+                    "path_to_index_base_dir":"snowball-index/text-index",
+                    "index_name": "snowball_text_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"snowball-index/text-index/snowball_text_w2df_statistics.stat",
+                    "doc2len":"snowball-index/text-index/snowball_text_doc2len.stat",
+                    "doc2norm":"snowball-index/text-index/snowball_text_doc2len_norm.stat",
+                    "word2vec": "w2v-model/word2vec.wordvectors"
+            },
+            "title": {
+                    "path_to_index_base_dir":"snowball-index/title-index",
+                    "index_name": "snowball_title_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"snowball-index/title-index/snowball_title_w2df_statistics.stat",
+                    "page-rank": "page-rank.pkl",
+                    "word2vec": "w2v-model/word2vec.wordvectors"
+            },
+            "text_no_w2v": {
+                    "path_to_index_base_dir":"snowball-index/text-index",
+                    "index_name": "snowball_text_index",
+
+                    "title_weight":0.5,
+                    "text_weight":0.5,
+                    "pagerank_weight":0,
+                    "word2df":"snowball-index/text-index/snowball_text_w2df_statistics.stat",
+                    "doc2len":"snowball-index/text-index/snowball_text_doc2len.stat",
+                    "doc2norm":"snowball-index/text-index/snowball_text_doc2len_norm.stat"
+
+            }
+    }
+
+
+}

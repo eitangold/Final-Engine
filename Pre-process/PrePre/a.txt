@@ -1,0 +1,336 @@
+# if the following command generates an error, you probably didn't enable 
+# the cluster security option "Allow API access to all Google Cloud services"
+# under Manage Security → Project Access when setting up the cluster
+!gcloud dataproc clusters list --region us-central1
+!pip install -q google-cloud-storage==1.43.0
+!pip install -q graphframes
+!touch log.txt
+import logging
+logging.basicConfig(level=logging.DEBUG,
+                    filename='log.txt',
+                    filemode='w',
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    force=True)
+logger = logging.getLogger(__name__)
+import pyspark
+import sys
+from collections import Counter, OrderedDict, defaultdict
+import itertools
+from itertools import islice, count, groupby
+import pandas as pd
+import os
+import re
+from operator import itemgetter
+import nltk
+from nltk.stem.porter import *
+from nltk.corpus import stopwords
+from time import time
+from pathlib import Path
+import pickle
+import pandas as pd
+from google.cloud import storage
+from timeit import timeit
+import numpy as np
+import json
+import hashlib
+def _hash(s):
+    return hashlib.blake2b(bytes(s, encoding='utf8'), digest_size=5).hexdigest()
+
+nltk.download('stopwords')
+# if nothing prints here you forgot to include the initialization script when starting the cluster
+!ls -l /usr/lib/spark/jars/graph*
+from pyspark.sql import *
+from pyspark.sql.functions import *
+from pyspark import SparkContext, SparkConf, SparkFiles
+from pyspark.sql import SQLContext
+from graphframes import *
+-------------------------
+
+
+
+spark
+------------
+# Put your bucket name below and make sure you can access it without an error
+bucket_name = '209100783-ir-project' 
+full_path = f"gs://{bucket_name}/"
+paths=[]
+
+client = storage.Client()
+blobs = client.list_blobs(bucket_name)
+for b in blobs:
+    if b.name != 'graphframes.sh':
+        paths.append(full_path+b.name)
+-----------------------------
+parquetFile = spark.read.parquet(*paths)
+doc_text_pairs = parquetFile.select("title", "id").rdd
+-----------------------------
+# adding our python module to the cluster
+sc.addFile("/home/dataproc/Config.json")
+sc.addFile("/home/dataproc/Invertedindex.py")
+sc.addFile("/home/dataproc/factory.py")
+
+sys.path.insert(0,SparkFiles.getRootDirectory())
+------------------------------
+from factory import *
+from Invertedindex import *
+import json
+with open("Config.json","r") as file_config:
+    config_dict = json.load(file_config)
+    index_config = config_dict['index_configuration']
+    proj_config = config_dict['project_configuration']
+    print(config_dict)
+    
+Tok = FactoryIndex.get_tokenizer(index_config['tokenizer'])
+english_stopwords = frozenset(stopwords.words('english'))
+corpus_stopwords = ["category", "references", "also", "external", "links", 
+                    "may", "first", "see", "history", "people", "one", "two", 
+                    "part", "thumb", "including", "second", "following", 
+                    "many", "however", "would", "became"]
+
+all_stopwords = english_stopwords.union(corpus_stopwords)
+
+NUM_BUCKETS = index_config['NUM_BUCKETS']
+
+def token2bucket_id(token):
+    return int(_hash(token),16) % NUM_BUCKETS
+stemmering = None
+global_doc_size = {}
+---------------------------------
+# PLACE YOUR CODE HERE
+def word_count(text, id,stemmer=None,idx_type=None):
+    if stemmer is not None:
+        logger.critical("this is stemmer")
+        tokens = [stemmer.stem(token.group()) for token in Tok.tokenize(text.lower()) if token.group() not in all_stopwords]
+    else:
+        logger.critical("this is no stemmer")
+        tokens = [token.group() for token in Tok.tokenize(text.lower()) if token.group() not in all_stopwords]
+
+    token_countr = Counter(tokens)
+  #calculating the vec size of the document
+    if idx_type == 'text':
+        global_doc_size[id] = np.linalg.norm(np.array(list(token_countr.values())))
+
+  
+    return [(word,(id,tf)) for word,tf in token_countr.items()]
+
+def doc_to_count(text, id,stemmer=None,idx_type=None):
+    if stemmer is not None:
+        logger.critical("this is stemmer")
+        tokens = [stemmer.stem(token.group()) for token in Tok.tokenize(text.lower()) if token.group() not in all_stopwords]
+    else:
+        logger.critical("this is no stemmer")
+        tokens = [token.group() for token in Tok.tokenize(text.lower()) if token.group() not in all_stopwords]
+
+    token_countr = Counter(tokens)
+  
+    doc_size = np.linalg.norm(np.array(list(token_countr.values())))
+    doc_len = len(token_countr.values())
+
+    
+    return id,(np.round(doc_size,4),doc_len)
+
+def reduce_word_counts(unsorted_pl,thr_len_pl, idx_type):
+ 
+    if idx_type == 'text':
+        if len(unsorted_pl) < thr_len_pl:
+            return []
+      
+    return sorted(unsorted_pl,key=lambda tup: tup[1],reverse=True)
+
+def partition_postings_and_write(postings,bucket_name,stem,index_type):
+
+    rdd2 = postings.groupBy(lambda word: token2bucket_id(word[0])).map(lambda x : InvertedIndex.write_a_posting_list((x[0],x[1]),bucket_name,stem,index_type))
+    return rdd2
+----------------------------
+def preprocess_data(index_type,stem,bucket_name,path,index_name_file,w2df_file_name,doc_statistics,stemmering):
+    client = storage.Client()
+    t_start = time()
+    if index_type == 'text':
+        doc_to_len = doc_text_pairs.map(lambda x:doc_to_count(x[0],x[1],stemmering,index_type)).collectAsMap()
+        avg_tot_len = __builtins__.sum(map(lambda x: x[1],doc_to_len.values()))/len(doc_to_len.keys())
+        with open(doc_statistics,'wb') as f:
+            pickle.dump(doc_to_len,f)
+            bucket = client.bucket(bucket_name)
+            blob_posting_locs = bucket.blob(f"postings_gcp/{path}{doc_statistics}")
+            blob_posting_locs.upload_from_filename(f"{doc_statistics}")
+            del doc_to_len
+
+    word_counts = doc_text_pairs.flatMap(lambda x: word_count(x[0],x[1],stemmering,index_type))
+    postings = word_counts.groupByKey().mapValues(lambda x :reduce_word_counts(x,0, index_type))
+
+
+    postings_filtered = postings.filter(lambda x: len(x[1])>0)
+
+    w2df = postings_filtered.mapValues(lambda key: len(key))
+    w2df_dict = w2df.collectAsMap()
+  
+    with open(w2df_file_name,'wb') as f:
+        pickle.dump(w2df_dict,f)
+        bucket = client.bucket(bucket_name)
+        blob_posting_locs = bucket.blob(f"postings_gcp/{path}{w2df_file_name}")
+        blob_posting_locs.upload_from_filename(f"{w2df_file_name}")
+        del w2df_dict
+    _ = partition_postings_and_write(postings_filtered,'testing-bucketing',stem,index_type).collect()
+    print(time()-t_start)
+  #-------------------------------------
+  
+def preprocess_data_for_anchor(index_type,stem,bucket_name,path,index_name_file,w2df_file_name,doc_statistics,stemmering,Tok):
+    client = storage.Client()
+    
+    t_start = time()
+    
+    doc_text_pairs = doc_text_pairs_first.map(lambda x: (x[0],[(y[0],y[1]) for y in x[1]]))
+    test_anchor = doc_text_pairs.flatMap(lambda x: word_count_anchor(x[1], Tok)).groupByKey()
+    w_id_anchor = test_anchor.mapValues(lambda x: list(set(x)))
+    
+    w2df = w_id_anchor.mapValues(lambda key: len(key))
+    w2df_dict = w2df.collectAsMap()
+  
+    with open(w2df_file_name,'wb') as f:
+        pickle.dump(w2df_dict,f)
+        bucket = client.bucket(bucket_name)
+        blob_posting_locs = bucket.blob(f"postings_gcp/{path}{w2df_file_name}")
+        blob_posting_locs.upload_from_filename(f"{w2df_file_name}")
+        del w2df_dict
+    _ = partition_postings_and_write(w_id_anchor,'testing-bucketing',stem,index_type).collect()
+    print(time()-t_start)
+  #-------------------------------------
+  
+def create_inverted_index(path,index_name_file,w2df_file_name,doc_statistics):
+    inverted = InvertedIndex()
+  
+  
+
+    super_posting_locs = defaultdict(list)
+    for blob in client.list_blobs('testing-bucketing', prefix=f'postings_gcp/{path}'):
+        if not blob.name.endswith("pickle"):
+            continue
+        with blob.open("rb") as f:
+            posting_locs = pickle.load(f)
+      
+        for k, v in posting_locs.items():
+        # todo change to super_posting_locs[k] = v
+            super_posting_locs[k].extend(v)
+
+    inverted.posting_locs = super_posting_locs
+
+  # write the global stats out
+    inverted.write_index('.', index_name_file,'testing-bucketing',path)
+
+------------------------------------------
+import numpy as np
+import math
+def create_idf_dict(name_file_df, name_file_doc_len):
+
+    with open(f'{name_file_df}', 'rb') as w2df:
+        df_dict = pickle.load(w2df)
+
+    with open(f'{name_file_doc_len}', 'rb') as d2size:
+        doc_to_len = pickle.load(d2size)
+
+    idf_dict ={}
+    N = len(doc_to_len)
+    for word, df in df_dict.items():
+        idf_dict[word] = math.log2(N / df)
+    return idf_dict
+
+def create_list_of_tokens(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+    if stemmer is not None:
+        tokens = [stemmer.stem(token.group()) for token in Tok(text.lower()) if token.group() not in all_stopwords]
+    else:
+        tokens = [token.group() for token in Tok(text.lower()) if token.group() not in all_stopwords]
+    return ide,tokens
+    
+    
+    
+def doc_to_count_fix_len(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+
+    return np.int32(ide),len(text)
+
+def doc_to_count_fix_max_word_norm(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+
+    token_countr = Counter(text)
+    if len(token_countr) == 0:
+        return ide,0
+    
+    
+    max_word = token_countr.most_common(1)[0][1]
+    tf_idf_by_max_word = [(tf / max_word) * idf_dict[w] for w, tf in token_countr.items() if w in idf_dict]
+    doc_norm_max_word = np.linalg.norm(np.array(tf_idf_by_max_word))
+    return np.int32(ide),doc_norm_max_word
+
+def doc_to_count_fix_max_word(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+
+    token_countr = Counter(text)
+    if len(token_countr) == 0:
+        return ide,0
+    
+    
+    max_word = token_countr.most_common(1)[0][1]
+    return np.int32(ide),max_word
+
+def doc_to_count_fix_len_norm(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+
+    token_countr = Counter(text)
+    if len(token_countr) == 0:
+        return ide,0
+    
+    doc_len = len(text)
+    tf_idf_by_len = [(tf / doc_len) * idf_dict[w] for w, tf in token_countr.items() if w in idf_dict]
+    doc_size_by_len = np.linalg.norm(np.array(tf_idf_by_len))
+    
+    return np.int32(ide),doc_size_by_len
+
+def doc_to_count_fix_original_tf(text, ide, stemmer=None, idx_type=None, idf_dict=None,Tok=None):
+
+    token_countr = Counter(text)
+    if len(token_countr) == 0:
+        return ide,0
+    
+    doc_size_original_tf = np.linalg.norm(np.array(list(token_countr.values())))
+
+
+    return np.int32(ide),doc_size_original_tf
+--------------------------------------------
+!mkdir regular snowball porter
+--------------
+name = 'porter'
+!gsutil cp gs://testing-bucketing/postings_gcp/{name}-index/text-index/*.stat {name}/
+----------------------------
+doc_text_pairs = parquetFile.select("text", "id").rdd
+Tok = re.compile(r"[\#\@\w](['\-]?\w){2,24}",re.UNICODE).finditer
+idf_dict = create_idf_dict('snowball/snowball_text_w2df_statistics.stat','regular/regular_doc2maxword.stat')
+tokens_rdd = doc_text_pairs.map(lambda x: create_list_of_tokens(x[0],x[1],stemmer=None,idx_type=idf_dict,Tok=Tok))
+
+
+------------------------
+doc_text_pairs = parquetFile.select("text", "id").rdd
+Tok = re.compile(r"[\#\@\w](['\-]?\w){2,24}",re.UNICODE).finditer
+index_type = 'text'
+stem = "regular"
+print(stem)
+if stem == 'regular':
+    stemmering = None
+else:
+    stemmering = FactoryIndex.get_stemmer(stem)
+    
+client = storage.Client()
+bucket_name = 'testing-bucketing'
+path = f"{stem}-index/{index_type}-index/"
+############# create list of tokens #############
+
+id_fixed_name = f"{stem}_{index_type}_doc2len.stat"
+
+id_fixed_rdd = tokens_rdd.map(lambda x:doc_to_count_fix_len(x[1],x[0],stemmering,index_type,idf_dict,Tok))
+id_fixed_filter = id_fixed_rdd.filter(lambda x: x[1] > 0 )
+id_fixed = id_fixed_filter.collectAsMap()
+
+with open(id_fixed_name,'wb') as f:
+    pickle.dump(id_fixed,f)
+    bucket = client.bucket(bucket_name)
+    blob_posting_locs = bucket.blob(f"postings_gcp/{path}{id_fixed_name}")
+    blob_posting_locs.upload_from_filename(f"{id_fixed_name}")
+    del id_fixed
+    
+###############################################
+-------------------------
