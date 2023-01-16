@@ -8,15 +8,19 @@ from spacy.lang.en import English
 import string
 
 """
-Examples this class prser the query using spacy tokenizer 
+The Parser class is used to parse and process a given query string.
 """
 
 
 class Parser:
+
     def __init__(self, stop_words, nlp):
         self._tokenizer = nlp.tokenizer
         self._stopwords = stop_words
-
+    """
+    Returns
+    A list of tokens (words) that represent the query after being processed, lowercased and stop words removed.
+    """
     def parse(self, query: str):
         query = query.translate(str.maketrans('', '', string.punctuation))
         doc_tokens = self._tokenizer(query)
@@ -25,16 +29,18 @@ class Parser:
 
 
 """
-Notes this class loads word2vec model and uses it to expand querys
+The QueryExpand class is used to expand a given query by adding semantically similar terms to the query.
 """
-
-
 class QueryExpand:
     def __init__(self, stop_words, path_to_w2v_model):
         self.nlp = English()
         self._parser = Parser(stop_words, self.nlp)
         self.model = KeyedVectors.load(path_to_w2v_model)
 
+    """
+    Returns
+    A list of tuples where each tuple contains a word and its similarity score, sorted by similarity score in descending order.
+    """
     def __call__(self, query, limiter):
         lst_of_tokens = self._parser.parse(query)
         expantion = []
