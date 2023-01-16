@@ -5,7 +5,9 @@ from tokenize import tokenize
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 
-
+"""
+Notes this is the packege for factory of objects that all the project share 
+"""
 class TokenizerInterface:
     def __init__(self,tokenizerfunc) -> None:
         self._tokenizer = tokenizerfunc
@@ -20,7 +22,7 @@ class FactoryIndex:
         pass
     @staticmethod
     def get_tokenizer(tokenizer:str):
-        if tokenizer == 'nltk':
+        if tokenizer == 'spacy':
             pass
         elif tokenizer == 'python':
             return TokenizerInterface(tokenize)
