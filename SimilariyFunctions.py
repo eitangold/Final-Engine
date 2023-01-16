@@ -35,7 +35,8 @@ def binary_rank(w_posting_list_itr):
     return score_dict
 
 """
-The BM25_score function is used to rank the documents in the collection based on their relevance to a given query, using the BM25 ranking algorithm.
+The BM25_score function is used to rank the documents in the collection based on their relevance to a given
+ query, using the BM25 ranking algorithm.
 Returns
 A dictionary where the keys are the document IDs and the values are the relevance scores for each document
 """
