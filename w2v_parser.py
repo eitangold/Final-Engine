@@ -7,6 +7,10 @@ from gensim.models import KeyedVectors
 from spacy.lang.en import English
 import string
 
+"""
+Examples this class prser the query using spacy tokenizer 
+"""
+
 
 class Parser:
     def __init__(self, stop_words, nlp):
@@ -16,7 +20,13 @@ class Parser:
     def parse(self, query: str):
         query = query.translate(str.maketrans('', '', string.punctuation))
         doc_tokens = self._tokenizer(query)
-        return list(filter(lambda tok: False if tok in self._stopwords else True, map(lambda tok: tok.lower_, doc_tokens)))
+        return list(
+            filter(lambda tok: False if tok in self._stopwords else True, map(lambda tok: tok.lower_, doc_tokens)))
+
+
+"""
+Notes this class loads word2vec model and uses it to expand querys
+"""
 
 
 class QueryExpand:
@@ -24,11 +34,11 @@ class QueryExpand:
         self.nlp = English()
         self._parser = Parser(stop_words, self.nlp)
         self.model = KeyedVectors.load(path_to_w2v_model)
-        # self.model = KeyedVectors()
 
     def __call__(self, query, limiter):
         lst_of_tokens = self._parser.parse(query)
         expantion = []
+        # for each token in the token list try to expand it
         for token in lst_of_tokens:
             try:
                 expantion.extend(self.model.most_similar(token, topn=5))
@@ -41,13 +51,3 @@ class QueryExpand:
 
         return expantion
 
-
-if __name__ == '__main__':
-    with open('new_train_q.json', 'rb') as f:
-        qu = json.load(f)
-    ex = QueryExpand(('a'), "./w2v-models/word2vec.wordvectors")
-    for q in qu:
-        print(q)
-        t = time()
-        print(ex(q))
-        print(time() - t)
