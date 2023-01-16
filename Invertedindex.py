@@ -13,15 +13,25 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Let's start with a small block size of 30 bytes just to test things out.
-# with open("Config.json", "r") as f:
-#     config_dict = json.load(f)
-#     index_config_dict = config_dict['index_configuration']
-
+"""
+Notes this is where all the global variabels lay
+"""
 BLOCK_SIZE = 1999998
 TUPLE_SIZE = 6
 TF_MASK = 65535
-
+"""
+idf: a dictionary to store the Inverse Document Frequency (IDF) values for each term.
+_base_dir: a variable to store the base directory path for the documents.
+df: a counter to keep track of the Document Frequency (DF) of each term.
+term_total: a counter to keep track of the total number of occurrences of each term in the collection.
+_posting_list: a defaultdict to store the posting list for each term, where the key is the term and the value is a list of documents that contain the term.
+posting_locs: a defaultdict to store the location of each term in the documents, where the key is the term and the value is a list of tuples, each representing the document ID and the location of the term in the document.
+_doc_to_len: a dictionary to store the length of each document.
+_doc2stat: a dictionary to store the statistics of each document.
+_doc2norm: a dictionary to store the normalization values of each document.
+_N: a variable to store the total number of documents in the collection.
+_avg: a variable to store the average length of the documents in the collection.
+"""
 
 class InvertedIndex:
     def __init__(self):
@@ -57,8 +67,8 @@ class InvertedIndex:
                 self.term_total[token] = sum(convert_to_int(i, b) for i in range(self.df[token]))
 
     def posting_lists_iter(self, tokens: list):
-        """ A generator that reads one posting list from disk and yields
-            a (word:str, [(doc_id:int, tf:int), ...]) tuple.
+        """
+        A generator that reads one posting list from disk and yields  a (word:str, [(doc_id:int, tf:int), ...]) tuple.
         """
 
         with closing(MultiFileReader(self._base_dir)) as reader:
@@ -77,8 +87,9 @@ class InvertedIndex:
 
 
     def posting_lists_iter_filter(self,tokens:list, num:int):
-        """ A generator that reads one posting list from disk and yields
-            a (word:str, [(doc_id:int, tf:int), ...]) tuple.
+        """
+        The posting_lists_iter_filter method is a generator function that allows for iterating over the posting lists
+        of a given set of terms, while also filtering the number of documents to be returned for each term.
         """
         with closing(MultiFileReader(self._base_dir)) as reader:
             for token in tokens:
@@ -99,8 +110,10 @@ class InvertedIndex:
                     yield token, posting_list
 
     def warm_up(self):
-        # convert df to idf dictionary
-
+        """
+            The warm_up method is used to pre-compute some values that will be used later in the retrieval process.
+            These pre-computed values will be used later in the retrieval process to improve the efficiency of the retrieval process.
+        """
         self._N = len(self._doc_to_len)
         for word, df in self.df.items():
             self.idf[word] = math.log2(self._N / df)
