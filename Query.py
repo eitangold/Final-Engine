@@ -28,7 +28,7 @@ class Query:
 
         self.tf = Counter(list_of_tokens_q)
         if ranking_type == 'binary_ranking':
-            pass
+            return list(self.tf.keys())
         else:
             try:
                 normalizer = 1
@@ -45,6 +45,7 @@ class Query:
                         print("word not in dictionary")
                         self.tf.pop(term)
                 self.norm = numpy.linalg.norm(numpy.array(list(self.tf.values())))
+                return list(self.tf.keys())
             except:
                 pass
 
