@@ -2,6 +2,10 @@
 import math
 from collections import Counter
 
+"""
+The cosine_similarity function is used to rank the documents in the collection based on their similarity 
+to a given query, using the cosine similarity measure.
+"""
 def cosine_similarity(query, w_posting_list_itr, idf_d, d_len, d_norm):
     score_dict = {}
 
@@ -18,6 +22,9 @@ def cosine_similarity(query, w_posting_list_itr, idf_d, d_len, d_norm):
         score_dict[d_id] = score_dict[d_id] / (q_norm * d_norm[d_id] * d_len[d_id])
     return score_dict
 
+"""
+The binary_rank function is used to rank the documents in the collection based on their presence of the query terms.
+"""
 def binary_rank(w_posting_list_itr):
     score_dict = Counter()
 
