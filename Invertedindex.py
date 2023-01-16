@@ -76,7 +76,6 @@ class InvertedIndex:
                 if token in self.posting_locs:
                     locs = self.posting_locs[token]
                     b = reader.read(locs, self.df[token] * TUPLE_SIZE)
-                    # todo maybe implement using numpy array
                     posting_list = [None, ] * self.df[token]
                     for i in range(self.df[token]):
                         doc_id = int.from_bytes(b[i * TUPLE_SIZE:i * TUPLE_SIZE + 4], 'big')
@@ -96,8 +95,6 @@ class InvertedIndex:
                 if token in  self.posting_locs:
                     locs = self.posting_locs[token]
                     b = reader.read(locs, self.df[token] * TUPLE_SIZE)
-                    #todo maybe implement using numpy array
-
                     if num != 0:
                         stop = num if num <= self.df[token] else self.df[token]
                     else:

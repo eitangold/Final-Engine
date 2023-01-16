@@ -14,23 +14,6 @@ class TokenizerInterface:
     def tokenize(self,sentence:str)->object:
         return self._tokenizer(sentence)
 
-# class SimilarityInterface(ABC):
-#     #todo implement arguments and the function
-#     @abstractmethod
-#     def calculate():
-#         pass
-
-# class CosineSimilarity(SimilarityInterface):
-#     def __init__(self) -> None:
-#         pass
-#     def calculate():
-#         pass
-
-# class BM25Similarity(SimilarityInterface):
-#     def __init__(self) -> None:
-#         pass
-#     def calculate():
-#         pass
 
 #the purpose of this factory is to return object of all  the configuration from the configuration file
 class FactoryIndex:
@@ -53,10 +36,3 @@ class FactoryIndex:
         elif stemmer == 'snowball':
             logger.critical("@@@@ this is creation of snowball from factory @@@@ ")
             return SnowballStemmer('english')
-    # @staticmethod
-    # def get_sim_function(function:str)->object:
-    #     if function ==  'regular_cosin':
-    #         return SimilarityInterface() #todo implement cosine simfucn or use spacy,numpy, cosin
-    #     elif function == 'bm25':
-    #         return BM25Similarity()
-        

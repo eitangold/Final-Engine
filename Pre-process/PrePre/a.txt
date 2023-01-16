@@ -209,7 +209,6 @@ def create_inverted_index(path,index_name_file,w2df_file_name,doc_statistics):
             posting_locs = pickle.load(f)
       
         for k, v in posting_locs.items():
-        # todo change to super_posting_locs[k] = v
             super_posting_locs[k].extend(v)
 
     inverted.posting_locs = super_posting_locs

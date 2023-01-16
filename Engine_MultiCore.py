@@ -112,7 +112,7 @@ class Engine:
                     expanded_query = list(map(lambda tup: tup[0],expander(query,limiter)))
                     q1_words = q(query=expanded_query, stopwords_frozen=stop_words_set, normalize_tf=None, idf_dict=index.idf)
                     posting_list = index.posting_lists_iter_filter(q1_words,200000)
-                    ## todo this is where we cosine/BM25
+                    ##  this is where we cosine/BM25
                     output = BM25_score(posting_list, index.idf, index._doc_to_len, index._avg)
                     if len(output.keys()) > 0:
                         normelize_factor = output.most_common(1)[0][1]
@@ -125,7 +125,7 @@ class Engine:
                     q = Query('regex', 'snowball')
                     q1_words = q(query=query, stopwords_frozen=stop_words_set, normalize_tf=None, idf_dict=index.idf)
                     posting_list = index.posting_lists_iter_filter(q1_words,200000)
-                    ## todo this is where we cosine/BM25
+                    ##  this is where we cosine/BM25
                     output = BM25_score(posting_list, index.idf, index._doc_to_len, index._avg)
                     if len(output.keys()) > 0:
                         normelize_factor = output.most_common(1)[0][1]
@@ -140,13 +140,13 @@ class Engine:
                 if type_of_search == "cosine":
                     q1_words = q(query=query, stopwords_frozen=stop_words_set, normalize_tf="norm_len", idf_dict=index.idf)
                     posting_list = index.posting_lists_iter(q1_words)
-                    ## todo this is where we cosine/BM25
+                    ##  this is where we cosine/BM25
                     output = cosine_similarity(q, posting_list,index.idf, index._doc_to_len,index._doc2norm)
                 elif type_of_search == 'binary':
                     if message[3] == "our":
                         weight = message[4]
                         q1_words = q(query=query, stopwords_frozen=stop_words_set, normalize_tf=None, idf_dict=index.idf,ranking_type="binary_ranking")
-                        ## todo this is where we binary
+                        ##  this is where we binary
                         posting_list = index.posting_lists_iter(q1_words)
                         output = binary_rank(posting_list)
                         if len(output.keys()) > 0:
@@ -160,7 +160,7 @@ class Engine:
 
                     else:
                         q1_words = q(query=query, stopwords_frozen=stop_words_set, normalize_tf=None, idf_dict=index.idf,ranking_type="binary_ranking")
-                        ## todo this is where we binary
+                        ##  this is where we binary
                         posting_list = index.posting_lists_iter(q1_words)
                         output = binary_rank(posting_list)
 
@@ -232,7 +232,7 @@ class Engine:
             if type_of_index == "our":
                 weight = 0.3
                 posting_list1 = index.posting_lists_iter_filter(q1_words,300000)
-                ## todo this is where we binary rank
+                ##  this is where we binary rank
                 output1 = binary_rank(posting_list1)
                 if len(output1.keys()) > 0:
                     normelize_factor = len(q1_words)
@@ -316,7 +316,7 @@ class Engine:
 
             posting_list1 = index.posting_lists_iter_filter(q1_words,300000)
             posting_list2 = index.posting_lists_iter_filter(q2_words,300000)
-            ## todo this is where we binary rank
+            ##  this is where we binary rank
             output1 = binary_rank(posting_list1)
             output2 = binary_rank(posting_list2)
             if len(output1.keys()) > 0:
@@ -336,11 +336,6 @@ class Engine:
 
     def __init__(self, engine_config_file) -> None:
         self.input_from_process = Queue()
-
-
-        # todo handel page rank
-        # TODO wrap all the loading in try except
-
         """
         this is the objects that the engine class holds 
         :dictionary of document ID maped to title

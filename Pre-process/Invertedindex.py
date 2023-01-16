@@ -81,7 +81,6 @@ class InvertedIndex:
                 if token in  self.posting_locs:
                     locs = self.posting_locs[token]
                     b = reader.read(locs, self.df[token] * TUPLE_SIZE)
-                    #todo maybe implement using numpy array
                     posting_list = [None,]*self.df[token]
                     for i in range(self.df[token]):
                         doc_id = int.from_bytes(b[i*TUPLE_SIZE:i*TUPLE_SIZE+4], 'big')
@@ -103,7 +102,7 @@ class InvertedIndex:
         for p in Path(base_dir).rglob(f'{name}_*.bin'):
             p.unlink()
 
-    # todo this function is called for each bucket that we have in the RDD -> more buckets -> more writing
+    #  this function is called for each bucket that we have in the RDD -> more buckets -> more writing
     @staticmethod
     def write_a_posting_list(b_w_pl, bucket_name,stem,index_type):
         posting_locs = defaultdict(list)
@@ -129,8 +128,6 @@ class InvertedIndex:
               logger.critical("_upload_posting_locs thorw errorrrrrrr!!!!!")
         client = storage.Client()
         bucket = client.bucket(bucket_name)
-        # todo blob_posting_locs = bucket.blob(f"postings_gcp/buckets/{bucket_id}_posting_locs.pickle")
-        # todo latest ======= here path added 
         path = f"{stem}-index/{index_type}-index/"
         blob_posting_locs = bucket.blob(f"postings_gcp/{path}{stem}_{index_type}_{bucket_id}_posting_locs.pickle")
         blob_posting_locs.upload_from_filename(f"{stem}_{index_type}_{bucket_id}_posting_locs.pickle")
