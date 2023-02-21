@@ -16,9 +16,9 @@
     "type_of_index":["text","title","anchor"]
   },
   "project_configuration":{
-    "project_id":"ir-2022-my",
-    "bucket_name":"209100783-ir-project",
-    "bucket_to_upload":"testing-bucketing",
-    "file_to_download":"multistream10_preprocessed.parquet"
+    "project_id":"--",
+    "bucket_name":"--",
+    "bucket_to_upload":"--",
+    "file_to_download":"--"
   }
 }
